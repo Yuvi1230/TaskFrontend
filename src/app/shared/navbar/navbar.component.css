@@ -1,0 +1,106 @@
+/* ===== NAV WRAPPER ===== */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;                        /* Above page content, below modal (z=1000) */
+  background: #0b1224;                 /* deep navy */
+  color: #fff;
+  backdrop-filter: saturate(120%) blur(4px);
+  box-shadow: 0 2px 10px rgba(2,6,23,.15);
+}
+
+/* ===== BAR CONTAINER ===== */
+.nav__bar {
+  max-width: 1200px;                   /* match dashboard width */
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ===== BRAND ===== */
+.nav__brand {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: .25px;
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.nav__brand:hover { opacity: .95; transform: translateY(-0.5px); }
+.nav__brand:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.35);
+  border-radius: 8px;
+  padding-inline: 4px;                 /* creates focus padding without layout shift */
+}
+
+/* spacer pushes actions to the right */
+.nav__spacer { flex: 1; }
+
+/* ===== BUTTONS ===== */
+.nav__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .12s ease, box-shadow .15s ease;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  background: transparent;
+}
+
+/* Hover/focus for base button */
+.nav__btn:hover { background: #0f172a; border-color: #475569; color: #fff; }
+.nav__btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.35);
+}
+
+/* Ghost variant (Login/Logout) */
+.nav__btn--ghost {
+  background: rgba(241,245,249,0.06);       /* slate-100 at low opacity */
+}
+
+/* Primary variant (Register) */
+.nav__btn--primary {
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
+  color: #fff;
+  border-color: #2563eb;
+  box-shadow: 0 6px 12px rgba(37,99,235,.25), inset 0 1px 0 rgba(255,255,255,.35);
+}
+.nav__btn--primary:hover {
+  filter: brightness(1.03);
+  transform: translateY(-1px);
+}
+.nav__btn--primary:active {
+  transform: translateY(0);
+  box-shadow: 0 5px 10px rgba(37,99,235,.22), inset 0 1px 0 rgba(255,255,255,.25);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .nav__bar {
+    padding: 10px 16px;
+    gap: 8px;
+  }
+  .nav__brand {
+    font-size: 16px;
+  }
+  .nav__btn {
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+}

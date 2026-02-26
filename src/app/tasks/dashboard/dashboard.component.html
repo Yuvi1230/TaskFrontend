@@ -1,0 +1,84 @@
+<app-navbar></app-navbar>
+
+<section class="dash">
+  <!-- Topbar -->
+  <div class="dash__topbar">
+    <h2 class="dash__title">My Tasks</h2>
+    <button type="button" class="btn primary" (click)="openCreate()">+ New Task</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div
+      class="stats__card"
+      *ngFor="let s of statusKeys"
+      [ngClass]="{
+        'stats__card--all-task': s === 'ALL_TASK',
+        'stats__card--todo': s === 'TODO',
+        'stats__card--progress': s === 'IN_PROGRESS',
+        'stats__card--done': s === 'DONE'
+      }"
+    >
+      <div class="stats__label">{{ label(s) }}</div>
+      <div class="stats__value">{{ counts[s] }}</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button type="button" class="tabs__btn" [class.is-active]="tab==='ALL'" (click)="setTab('ALL')">ALL</button>
+    <button type="button" class="tabs__btn" [class.is-active]="tab==='TODO'" (click)="setTab('TODO')">To‑Do</button>
+    <button type="button" class="tabs__btn" [class.is-active]="tab==='IN_PROGRESS'" (click)="setTab('IN_PROGRESS')">In Progress</button>
+    <button type="button" class="tabs__btn" [class.is-active]="tab==='DONE'" (click)="setTab('DONE')">Done</button>
+  </div>
+
+  <!-- Cards -->
+  <div class="cards">
+    <article
+      class="card"
+      *ngFor="let task of filteredTasks; trackBy: trackById"
+      [ngClass]="{
+        'card--todo': task.status === 'TODO',
+        'card--ip': task.status === 'IN_PROGRESS',
+        'card--done': task.status === 'DONE'
+      }"
+    >
+      <header class="card__head">
+        <h4 class="card__title">{{ task.title }}</h4>
+        <span
+          class="badge"
+          [class.badge--todo]="task.status==='TODO'"
+          [class.badge--ip]="task.status==='IN_PROGRESS'"
+          [class.badge--done]="task.status==='DONE'"
+        >
+          {{ label(task.status) }}
+        </span>
+      </header>
+
+      <p class="card__desc">{{ task.description || '—' }}</p>
+      <div class="card__meta">Due: {{ task.dueDate }}</div>
+
+      <footer class="card__actions">
+        <button type="button" class="btn ghost" (click)="openEdit(task)">Edit</button>
+        <button type="button" class="btn danger" (click)="confirmDelete(task)">Delete</button>
+      </footer>
+    </article>
+  </div>
+
+  <p class="dash__empty" *ngIf="tasks.length === 0" aria-live="polite">
+    You have no tasks yet. Create one to get started!
+  </p>
+</section>
+
+<!-- Create/Edit Modal -->
+<div class="modal-backdrop" *ngIf="showForm"></div>
+
+<div class="modal" *ngIf="showForm">
+  <div class="modal-content">
+    <app-task-form
+      [task]="selected"
+      (saved)="onSaved($event)"
+      (cancel)="closeForm()"
+    ></app-task-form>
+  </div>
+</div>
