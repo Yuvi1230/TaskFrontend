@@ -1,9 +1,9 @@
 <header class="nav">
   <div class="nav__bar">
-    <a class="nav__brand" routerLink="/dashboard">TaskFlow</a>
+    <a class="nav__brand" routerLink="/dashboard"><span class="brand-dot"></span> TaskFlow</a>
     <div class="nav__spacer"></div>
     <ng-container  *ngIf="auth.isAuthenticated(); else guest"  >
-      <span>Hello {{ fullName }}</span>
+      <span>Hello, {{ fullName }}</span>
       <button class="nav__btn" (click)="auth.logout()">Logout</button>
     </ng-container>
     <ng-template #guest>

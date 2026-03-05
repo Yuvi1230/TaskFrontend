@@ -1,20 +1,24 @@
+
+
 import { Component, EventEmitter, Input, Output, DestroyRef, inject, OnInit } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { TaskRequest, TaskResponse, TaskStatus } from '../../models/task.model';
+import { Priority, TaskRequest, TaskResponse, TaskStatus, UserResponse } from '../.././/models/task.model';
+import { TaskCommentsComponent } from '../task-comments/task-comments.component';
+import { TaskService } from '../../services/task.service';
 
 @Component({
   standalone: true,
   selector: 'app-task-form',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, TaskCommentsComponent],
   templateUrl: './task-form.component.html',
   styleUrls: ['./task-form.component.css']
 })
 export class TaskFormComponent implements OnInit {
-  // If a task is passed, we are editing
+  /** If a task is passed, we are editing */
   @Input() task: TaskResponse | null = null;
 
-  // Optional audit metadata for the “Last modified” block (edit view)
+  /** Optional audit metadata for the “Last modified” block (edit view) */
   @Input() audit?: {
     statusChanged?: { from: TaskStatus; to: TaskStatus; on: string };
     dueDateChanged?: { from: string; to: string };
@@ -30,9 +34,10 @@ export class TaskFormComponent implements OnInit {
   get isEdit(): boolean { return !!this.task; }
 
   #fb = inject(FormBuilder);
+  #taskService = inject(TaskService);
 
   /**
-   * Use Non‑Nullable FormBuilder so control values are never null.
+   * Use Non-Nullable FormBuilder so control values are never null.
    * This fixes the 'TaskStatus | null' type in template.
    */
   #nnfb = this.#fb.nonNullable;
@@ -41,18 +46,25 @@ export class TaskFormComponent implements OnInit {
     title: this.#nnfb.control<string>('', { validators: [Validators.required] }),
     description: this.#nnfb.control<string>(''),
     dueDate: this.#nnfb.control<string>('', { validators: [Validators.required] }), // yyyy-MM-dd
-    status: this.#nnfb.control<TaskStatus>('TODO')
+    status: this.#nnfb.control<TaskStatus>('TODO'),
+    priority: this.#nnfb.control<Priority>('MEDIUM'),
+    assignedToId: this.#nnfb.control<number | null>(null)
   });
 
+  users: UserResponse[] = [];
+
   ngOnInit(): void {
+    this.#taskService.listUsers().subscribe(u => this.users = u);
     if (this.task) {
-      const { title, description, dueDate, status } = this.task;
+      const { title, description, dueDate, status, priority, assignedToId } = this.task;
       const ymd = this.toYMD(dueDate);
       this.form.patchValue({
         title,
         description: description ?? '',
         dueDate: ymd,
-        status
+        status,
+        priority,
+        assignedToId: assignedToId ?? null
       });
     }
   }
@@ -76,7 +88,7 @@ export class TaskFormComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const payload: TaskRequest = this.form.getRawValue(); // non-nullable, typesafe
+    const payload: TaskRequest = this.form.getRawValue();
     this.saved.emit(payload);
   }
 }
