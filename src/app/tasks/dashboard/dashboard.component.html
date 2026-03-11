@@ -4,7 +4,7 @@
 
   <div class="dash__topbar">
     <h2 class="dash__title">My Tasks</h2>
-    <button type="button" class="btn primary" (click)="openCreate()">+ New Task</button>
+    <button *appHasRole="['ADMIN','MANAGER','MEMBER']" type="button" class="btn primary" (click)="openCreate()">+ New Task</button>
   </div>
 
 
@@ -108,7 +108,7 @@
         {{ showAnalytics ? 'Hide Analytics' : 'Show Analytics' }}
       </button>
 
-      <button type="button" class="btn primary" (click)="openCreate()">+ New Task</button>
+      <button *appHasRole="['ADMIN','MANAGER','MEMBER']" type="button" class="btn primary" (click)="openCreate()">+ New Task</button>
     </div>
   </div>
 
@@ -153,8 +153,8 @@
         </div>
 
         <footer class="card__actions">
-          <button type="button" class="btn edit" (click)="openEdit(task)">Edit</button>
-          <button type="button" class="btn delete" (click)="confirmDelete(task)">Delete</button>
+          <button *appHasRole="['ADMIN','MANAGER','MEMBER']" type="button" class="btn edit" (click)="openEdit(task)">Edit</button>
+          <button *appHasRole="['ADMIN','MANAGER']" type="button" class="btn delete" (click)="confirmDelete(task)">Delete</button>
         </footer>
       </article>
 

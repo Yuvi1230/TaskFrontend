@@ -122,13 +122,14 @@ import { AuthService } from '../../services/auth.service';
 import { AnalyticsPanelComponent } from './analytics-panel/analytics-panel.component';
 import { TaskSummaryResponse } from '../../models/task.model';
 import { ActivityFeedComponent } from '.././activity-feed/activity-feed.component';
+import { HasRoleDirective } from '../../directives/has-role.directive';
 
 type Tab = 'ALL' | TaskStatus | 'ASSIGNED';
 
 @Component({
   standalone: true,
   selector: 'app-dashboard',
-  imports: [CommonModule, NavbarComponent, TaskFormComponent, AnalyticsPanelComponent, ActivityFeedComponent],
+  imports: [CommonModule, NavbarComponent, TaskFormComponent, AnalyticsPanelComponent, ActivityFeedComponent, HasRoleDirective],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })

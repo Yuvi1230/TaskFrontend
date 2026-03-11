@@ -6,6 +6,8 @@ import { map, catchError } from 'rxjs/operators';
 import { Observable, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthRequest, AuthResponse, RegisterRequest } from '../models/auth.model';
+import type { CurrentUser } from '../models/current-user.model';
+import type { UserRole } from '../models/role.model';
 
 const TOKEN_KEY = 'taskflow_token';
 @Injectable({ providedIn: 'root' })
@@ -50,7 +52,19 @@ export class AuthService {
   setLoginResult(res: AuthResponse) {
     // store token + user info together
     this.setToken(res.token);
-    localStorage.setItem('user', JSON.stringify({ id: res.userId, email: res.email, fullName: res.fullName }));
+
+    const payload = this.decodeJwt(res.token);
+    const role = (payload?.role as UserRole | undefined) ?? 'MEMBER';
+    const userId = Number(payload?.userId ?? payload?.uid ?? res.userId ?? 0) || 0;
+    const fullName = String(payload?.fullName ?? payload?.name ?? res.fullName ?? '');
+
+    const user: CurrentUser = {
+      userId,
+      email: res.email,
+      fullName,
+      role
+    };
+    localStorage.setItem('user', JSON.stringify(user));
   }
 
   isAuthenticated(): boolean {
@@ -67,20 +81,48 @@ export class AuthService {
 
   /** Get current user ID from localStorage */
   getCurrentUserId(): number {
-    const user = localStorage.getItem('user');
-    if (user) {
+    return this.getCurrentUser()?.userId ?? 0;
+  }
+
+  getCurrentUser(): CurrentUser | null {
+    const raw = localStorage.getItem('user');
+    if (raw) {
       try {
-        return JSON.parse(user).id;
+        const parsed = JSON.parse(raw);
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          typeof parsed.userId === 'number' &&
+          typeof parsed.fullName === 'string' &&
+          typeof parsed.email === 'string' &&
+          typeof parsed.role === 'string'
+        ) {
+          return parsed as CurrentUser;
+        }
       } catch {
-        return 0;
+        // fall through to token-based recovery
       }
     }
-    return 0;
+
+    const token = this.getToken();
+    if (!token) return null;
+    const payload = this.decodeJwt(token);
+    if (!payload) return null;
+
+    const role = (payload?.role as UserRole | undefined) ?? 'MEMBER';
+    const userId = Number(payload?.userId ?? payload?.uid ?? 0) || 0;
+    const fullName = String(payload?.fullName ?? payload?.name ?? '');
+    const email = String(payload?.sub ?? '');
+
+    const recovered: CurrentUser = { userId, fullName, email, role };
+    localStorage.setItem('user', JSON.stringify(recovered));
+    return recovered;
   }
 
   /** Logout + navigate to /login (idempotent) */
   logout(): void {
     this.clearToken();
+    localStorage.removeItem('user');
     // ignore navigation errors (e.g., already on /login)
     this.#router.navigate(['/login']).catch(() => {});
   }

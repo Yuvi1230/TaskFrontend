@@ -3,11 +3,12 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { NgIf } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { Subscription, filter } from 'rxjs';
+import { HasRoleDirective } from '../../directives/has-role.directive';
 
 @Component({
   standalone: true,
   selector: 'app-navbar',
-  imports: [RouterLink, NgIf],
+  imports: [RouterLink, NgIf, HasRoleDirective],
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css']
 })
@@ -28,13 +29,7 @@ export class NavbarComponent {
   }
 
   private readFromStorage(): void {
-    try {
-      const raw = localStorage.getItem('user');
-      this.fullName = raw ? (JSON.parse(raw)?.fullName ?? undefined) : undefined;
-      // console.log('Navbar fullName:', this.fullName);
-    } catch {
-      this.fullName = undefined;
-    }
+    this.fullName = this.auth.getCurrentUser()?.fullName ?? undefined;
   }
 
   onLogout(): void {

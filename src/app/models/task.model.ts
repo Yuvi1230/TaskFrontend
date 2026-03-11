@@ -56,6 +56,8 @@ export interface TaskCommentRequest {
 export interface UserResponse {
   id: number;
   fullName: string;
+  email?: string;
+  role?: string;
 }
 
 export interface TaskSummaryResponse {
