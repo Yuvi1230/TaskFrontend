@@ -3,6 +3,8 @@ import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NavbarComponent } from '../shared/navbar/navbar.component';
 import { TeamService } from '../services/team.service';
+import { TaskService } from '../services/task.service';
+import { TaskResponse } from '../models/task.model';
 
 @Component({
   selector: 'app-team-detail',
@@ -32,6 +34,18 @@ import { TeamService } from '../services/team.service';
           </div>
           <div class="muted small">{{ m.email }}</div>
         </div>
+
+        <h3>Team Tasks</h3>
+        <div class="card" *ngFor="let t of teamTasks">
+          <div class="row">
+            <div class="name">{{ t.title }}</div>
+            <div class="pill">{{ t.status }}</div>
+          </div>
+          <div class="muted small">Due: {{ t.dueDate }} • Priority: {{ t.priority }}</div>
+        </div>
+        <div class="card" *ngIf="teamTasks.length === 0">
+          <div class="muted">No tasks assigned to this team.</div>
+        </div>
       </ng-container>
     </section>
   `,
@@ -52,8 +66,10 @@ import { TeamService } from '../services/team.service';
 export class TeamDetailComponent implements OnInit {
   #route = inject(ActivatedRoute);
   #teams = inject(TeamService);
+  #tasks = inject(TaskService);
 
   team: any = null;
+  teamTasks: TaskResponse[] = [];
   loading = false;
   error = '';
 
@@ -64,6 +80,7 @@ export class TeamDetailComponent implements OnInit {
       next: (res) => {
         this.team = res;
         this.loading = false;
+        this.loadTeamTasks(id);
       },
       error: (err) => {
         this.error = err?.error?.message || 'Failed to load team.';
@@ -71,5 +88,15 @@ export class TeamDetailComponent implements OnInit {
       }
     });
   }
-}
 
+  private loadTeamTasks(teamId: number): void {
+    this.#tasks.list().subscribe({
+      next: (rows) => {
+        this.teamTasks = (rows ?? []).filter(t => Number(t.teamId ?? 0) === teamId);
+      },
+      error: () => {
+        this.teamTasks = [];
+      }
+    });
+  }
+}

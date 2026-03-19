@@ -27,6 +27,8 @@ export interface TaskResponse {
   ownerName: string;
   assignedToId?: number | null;
   assignedToName?: string | null;
+  teamId?: number | null;
+  teamName?: string | null;
   createdAt: string;
   updatedAt?: string | null;
 }

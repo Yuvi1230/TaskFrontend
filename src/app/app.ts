@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ToastComponent } from './shared/toast/toast.component';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -9,4 +10,8 @@ import { ToastComponent } from './shared/toast/toast.component';
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App {}
+export class App {
+  constructor(themeService: ThemeService) {
+    themeService.applySavedTheme();
+  }
+}

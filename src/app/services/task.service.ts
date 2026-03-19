@@ -3,6 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { ActivityLogResponse, Priority, TaskComment, TaskCommentRequest, TaskRequest, TaskResponse, TaskSummaryResponse, UserResponse } from '../models/task.model';
+import { SubtaskCreateRequest, SubtaskResponse, SubtaskSummaryResponse } from '../models/subtask.model';
+import { ActiveTimerResponse, ManualTimeLogRequest, TaskTimeLogResponse, TimeTotalResponse } from '../models/time-tracking.model';
 import { Observable } from 'rxjs';
 // import { CommentResponse } from '../models/comment.model';  // <-- add this
 
@@ -102,5 +104,53 @@ export class TaskService {
 
   activity(): Observable<ActivityLogResponse[]> {
     return this.#http.get<ActivityLogResponse[]>(`${environment.apiBaseUrl}/api/activity`);
+  }
+
+  listSubtasks(taskId: number): Observable<SubtaskResponse[]> {
+    return this.#http.get<SubtaskResponse[]>(`${environment.apiBaseUrl}/api/tasks/${taskId}/subtasks`);
+  }
+
+  createSubtask(taskId: number, req: SubtaskCreateRequest): Observable<SubtaskResponse> {
+    return this.#http.post<SubtaskResponse>(`${environment.apiBaseUrl}/api/tasks/${taskId}/subtasks`, req);
+  }
+
+  toggleSubtask(subtaskId: number): Observable<SubtaskResponse> {
+    return this.#http.patch<SubtaskResponse>(`${environment.apiBaseUrl}/api/subtasks/${subtaskId}/toggle`, {});
+  }
+
+  deleteSubtask(subtaskId: number): Observable<void> {
+    return this.#http.delete<void>(`${environment.apiBaseUrl}/api/subtasks/${subtaskId}`);
+  }
+
+  getSubtaskSummary(taskId: number): Observable<SubtaskSummaryResponse> {
+    return this.#http.get<SubtaskSummaryResponse>(`${environment.apiBaseUrl}/api/tasks/${taskId}/subtasks/summary`);
+  }
+
+  startTimer(taskId: number): Observable<ActiveTimerResponse> {
+    return this.#http.post<ActiveTimerResponse>(`${environment.apiBaseUrl}/api/tasks/${taskId}/timer/start`, {});
+  }
+
+  stopTimer(taskId: number): Observable<TaskTimeLogResponse> {
+    return this.#http.post<TaskTimeLogResponse>(`${environment.apiBaseUrl}/api/tasks/${taskId}/timer/stop`, {});
+  }
+
+  getActiveTimer(taskId: number): Observable<ActiveTimerResponse> {
+    return this.#http.get<ActiveTimerResponse>(`${environment.apiBaseUrl}/api/tasks/${taskId}/timer/active`);
+  }
+
+  createManualTimeLog(taskId: number, req: ManualTimeLogRequest): Observable<TaskTimeLogResponse> {
+    return this.#http.post<TaskTimeLogResponse>(`${environment.apiBaseUrl}/api/tasks/${taskId}/time-logs`, req);
+  }
+
+  listTimeLogs(taskId: number): Observable<TaskTimeLogResponse[]> {
+    return this.#http.get<TaskTimeLogResponse[]>(`${environment.apiBaseUrl}/api/tasks/${taskId}/time-logs`);
+  }
+
+  getTimeLogTotal(taskId: number): Observable<TimeTotalResponse> {
+    return this.#http.get<TimeTotalResponse>(`${environment.apiBaseUrl}/api/tasks/${taskId}/time-logs/total`);
+  }
+
+  deleteTimeLog(logId: number): Observable<void> {
+    return this.#http.delete<void>(`${environment.apiBaseUrl}/api/time-logs/${logId}`);
   }
 }

@@ -147,6 +147,22 @@
           </span>
         </div>
 
+        <div class="subtasks-progress" *ngIf="getSubtaskSummary(task.id).total > 0">
+          <div class="subtasks-progress__text" [class.subtasks-progress__text--done]="getSubtaskSummary(task.id).completed === getSubtaskSummary(task.id).total">
+            <span *ngIf="getSubtaskSummary(task.id).completed !== getSubtaskSummary(task.id).total">
+              {{ getSubtaskSummary(task.id).completed }} / {{ getSubtaskSummary(task.id).total }} subtasks done
+            </span>
+            <span *ngIf="getSubtaskSummary(task.id).completed === getSubtaskSummary(task.id).total">All done!</span>
+          </div>
+          <div class="subtasks-progress__bar">
+            <div
+              class="subtasks-progress__fill"
+              [class.subtasks-progress__fill--done]="getSubtaskSummary(task.id).completed === getSubtaskSummary(task.id).total"
+              [style.width.%]="subtaskProgress(task.id)"
+            ></div>
+          </div>
+        </div>
+
         <div class="card__meta assignee">{{ task.assignedToName || 'Unassigned' }}</div>
         <div class="card__meta" [ngClass]="getDueClass(task.dueDate, task.status)">
           Due: {{ task.dueDate }}

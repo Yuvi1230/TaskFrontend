@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subscription, finalize } from 'rxjs';
 import { NavbarComponent } from '../shared/navbar/navbar.component';
 import { HasRoleDirective } from '../directives/has-role.directive';
 import { AuthService } from '../services/auth.service';
@@ -43,7 +44,10 @@ import type { UserDirectoryItem } from '../models/user.model';
       </div>
 
       <div class="card error" *ngIf="error">{{ error }}</div>
-      <div class="card" *ngIf="loadingTeams">Loading teams…</div>
+      <div class="card" *ngIf="loadingTeams">
+        Loading teams...
+        <button type="button" class="btn ghost small" (click)="loadTeams()">Retry</button>
+      </div>
 
       <div class="grid" *ngIf="!loadingTeams && !error">
         <article class="team" *ngFor="let t of teams" [class.is-selected]="t.id===selectedTeamId">
@@ -59,8 +63,8 @@ import type { UserDirectoryItem } from '../models/user.model';
             </div>
 
             <div class="team__actions">
-              <button type="button" class="btn view" (click)="selectTeam(t.id)">View Team</button>
-              <button type="button" class="btn ghost" (click)="selectTeam(t.id)">Edit</button>
+              <button type="button" class="btn view" (click)="viewTeam(t.id)">View Team</button>
+              <button *appHasRole="['ADMIN','MANAGER']" type="button" class="btn ghost" (click)="editTeam(t.id)">Edit</button>
               <button
                 *appHasRole="['ADMIN','MANAGER']"
                 type="button"
@@ -76,16 +80,16 @@ import type { UserDirectoryItem } from '../models/user.model';
         <div class="card" *ngIf="teams.length === 0">No teams found.</div>
       </div>
 
-      <section class="detail" *ngIf="selectedTeamId">
+      <section class="detail" *ngIf="selectedTeamId" #detailSection>
         <div class="detail__head">
           <div class="detail__title">
-            Team Detail — {{ selectedTeam?.name || '—' }}
+            Team Detail - {{ selectedTeam?.name || '-' }}
           </div>
-          <div class="detail__actions">
+          <div class="detail__actions" *appHasRole="['ADMIN','MANAGER']">
             <input
               class="input"
               type="text"
-              placeholder="Search users…"
+              placeholder="Search users..."
               [(ngModel)]="addMemberQuery"
               (focus)="ensureUsersLoaded()"
             />
@@ -102,7 +106,10 @@ import type { UserDirectoryItem } from '../models/user.model';
           </div>
         </div>
 
-        <div class="card" *ngIf="loadingDetail">Loading team…</div>
+        <div class="card" *ngIf="loadingDetail">
+          Loading team...
+          <button type="button" class="btn ghost small" (click)="loadTeamDetail(selectedTeamId!)">Retry</button>
+        </div>
 
         <div class="table-wrap" *ngIf="!loadingDetail && selectedTeam">
           <table class="table">
@@ -125,7 +132,7 @@ import type { UserDirectoryItem } from '../models/user.model';
                 <td class="muted">{{ m.email }}</td>
                 <td>{{ m.tasksAssigned }}</td>
                 <td>{{ m.joinedAt | date: 'MMM dd' }}</td>
-                <td class="th-right">
+                <td class="th-right" *appHasRole="['ADMIN','MANAGER']">
                   <button
                     type="button"
                     class="btn danger small"
@@ -150,7 +157,7 @@ import type { UserDirectoryItem } from '../models/user.model';
         <div class="modal__card" (click)="$event.stopPropagation()">
           <div class="modal__head">
             <div class="modal__title">Create Team</div>
-            <button type="button" class="icon-btn" (click)="closeCreate()">×</button>
+            <button type="button" class="icon-btn" (click)="closeCreate()">&times;</button>
           </div>
 
           <div class="form">
@@ -172,7 +179,7 @@ import type { UserDirectoryItem } from '../models/user.model';
             <input
               class="input"
               type="text"
-              placeholder="Search…"
+              placeholder="Search..."
               [(ngModel)]="createMemberQuery"
               (focus)="ensureUsersLoaded()"
             />
@@ -189,6 +196,39 @@ import type { UserDirectoryItem } from '../models/user.model';
             <button type="button" class="btn ghost" (click)="closeCreate()">Cancel</button>
             <button type="button" class="btn primary" [disabled]="!createName.trim()" (click)="createTeam()">
               Create
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Team Modal -->
+      <div class="modal-backdrop" *ngIf="editOpen" (click)="closeEdit()"></div>
+      <div class="modal" *ngIf="editOpen">
+        <div class="modal__card" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__title">Edit Team</div>
+            <button type="button" class="icon-btn" (click)="closeEdit()">&times;</button>
+          </div>
+
+          <div class="form">
+            <label class="label">Team Name</label>
+            <input class="input" type="text" [(ngModel)]="editName" />
+
+            <label class="label">Description</label>
+            <textarea class="textarea" rows="3" [(ngModel)]="editDescription"></textarea>
+
+            <ng-container *ngIf="isAdmin">
+              <label class="label">Manager</label>
+              <select class="select" [(ngModel)]="editManagerId" (focus)="ensureUsersLoaded()">
+                <option *ngFor="let u of users" [ngValue]="u.id">{{ u.fullName }}{{ u.email ? ' ('+u.email+')' : '' }}</option>
+              </select>
+            </ng-container>
+          </div>
+
+          <div class="modal__actions">
+            <button type="button" class="btn ghost" (click)="closeEdit()">Cancel</button>
+            <button type="button" class="btn primary" [disabled]="!editName.trim()" (click)="saveEdit()">
+              Save
             </button>
           </div>
         </div>
@@ -245,10 +285,15 @@ import type { UserDirectoryItem } from '../models/user.model';
       .detail__title{font-weight:900}
       .detail__actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
-      .input,.select,.textarea{border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.12);color:#e2e8f0;border-radius:10px;padding:8px 10px;min-width:220px}
+      .input,.select,.textarea{border:1px solid rgba(148,163,184,.4);background:rgba(15,23,42,.72);color:#f8fafc;border-radius:10px;padding:8px 10px;min-width:220px}
+      .modal .input,.modal .select,.modal .textarea{border:1px solid rgba(120,113,108,.65);background:rgba(41,37,36,.92);color:#f5f5f4}
+      .modal .input:focus,.modal .select:focus,.modal .textarea:focus{outline:none;border-color:#34d399;box-shadow:0 0 0 3px rgba(16,185,129,.25)}
+      .input::placeholder,.textarea::placeholder{color:#cbd5e1;opacity:1}
+      .modal .input::placeholder,.modal .textarea::placeholder{color:#d6d3d1}
       .textarea{min-width:100%}
       .select{min-width:240px}
-      .label{display:block;font-weight:800;font-size:12px;opacity:.85;margin:10px 0 6px}
+      .label{display:block;font-weight:800;font-size:12px;color:#dbeafe;opacity:1;margin:10px 0 6px}
+      .modal .label{color:#e7e5e4}
 
       .table-wrap{overflow:auto}
       .table{width:100%;border-collapse:collapse}
@@ -264,15 +309,16 @@ import type { UserDirectoryItem } from '../models/user.model';
 
       .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998}
       .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
-      .modal__card{width:min(720px, 100%);background:#0b1224;border:1px solid rgba(255,255,255,.14);border-radius:16px;overflow:hidden}
+      .modal__card{width:min(720px, 100%);background:#1c1917;border:1px solid rgba(120,113,108,.55);border-radius:16px;overflow:hidden;box-shadow:0 20px 45px rgba(0,0,0,.5)}
       .modal__head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.10)}
       .modal__title{font-weight:900}
       .icon-btn{border:0;background:transparent;color:#fff;font-size:22px;cursor:pointer;opacity:.85}
       .icon-btn:hover{opacity:1}
       .form{padding:12px 14px}
-      .picker{max-height:220px;overflow:auto;border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:8px;margin-top:8px}
+      .picker{max-height:220px;overflow:auto;border:1px solid rgba(120,113,108,.45);border-radius:12px;padding:8px;margin-top:8px;background:rgba(28,25,23,.7)}
       .pick{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:10px}
-      .pick:hover{background:rgba(255,255,255,.05)}
+      .pick:hover{background:rgba(120,113,108,.2)}
+      .modal input[type='checkbox']{accent-color:#34d399}
       .modal__actions{display:flex;justify-content:flex-end;gap:10px;padding:12px 14px;border-top:1px solid rgba(255,255,255,.10)}
 
       @media (max-width: 1100px){
@@ -286,10 +332,13 @@ import type { UserDirectoryItem } from '../models/user.model';
     `
   ]
 })
-export class TeamsComponent implements OnInit {
+export class TeamsComponent implements OnInit, OnDestroy {
   #teams = inject(TeamService);
   #users = inject(UserService);
   #auth = inject(AuthService);
+  @ViewChild('detailSection') detailSection?: ElementRef<HTMLElement>;
+  private detailReq?: Subscription;
+  private teamsReq?: Subscription;
 
   teams: TeamResponse[] = [];
   selectedTeamId: number | null = null;
@@ -311,6 +360,12 @@ export class TeamsComponent implements OnInit {
   createManagerId = 0;
   createMemberQuery = '';
   createMemberIds = new Set<number>();
+
+  editOpen = false;
+  editTeamId = 0;
+  editName = '';
+  editDescription = '';
+  editManagerId = 0;
 
   get isAdmin(): boolean {
     return this.#auth.getCurrentUser()?.role === 'ADMIN';
@@ -345,42 +400,83 @@ export class TeamsComponent implements OnInit {
     this.loadTeams();
   }
 
+  ngOnDestroy(): void {
+    this.teamsReq?.unsubscribe();
+    this.detailReq?.unsubscribe();
+  }
+
   loadTeams(): void {
     this.loadingTeams = true;
     this.error = '';
-    this.#teams.list().subscribe({
-      next: (res) => {
-        this.teams = res ?? [];
-        this.loadingTeams = false;
-        if (this.teams.length > 0 && !this.selectedTeamId) {
-          this.selectTeam(this.teams[0].id);
+    this.teamsReq?.unsubscribe();
+    this.teamsReq = this.#teams.list()
+      .pipe(finalize(() => { this.loadingTeams = false; }))
+      .subscribe({
+        next: (res) => {
+          this.teams = res ?? [];
+          if (this.teams.length === 0) {
+            this.selectedTeamId = null;
+            this.selectedTeam = null;
+            return;
+          }
+
+          const hasCurrent = this.selectedTeamId
+            ? this.teams.some(t => t.id === this.selectedTeamId)
+            : false;
+
+          if (hasCurrent && this.selectedTeamId) {
+            this.loadTeamDetail(this.selectedTeamId);
+          } else {
+            const firstTeamId = this.teams[0].id;
+            this.selectedTeamId = firstTeamId;
+            this.loadTeamDetail(firstTeamId);
+          }
+        },
+        error: (err) => {
+          this.error = err?.error?.message || err?.message || 'Failed to load teams. Please try again.';
+          this.teams = [];
+          this.selectedTeam = null;
+          this.selectedTeamId = null;
         }
-      },
-      error: (err) => {
-        this.error = err?.error?.message || 'Failed to load teams.';
-        this.loadingTeams = false;
-      }
-    });
+      });
   }
 
   selectTeam(teamId: number): void {
-    if (!teamId || this.selectedTeamId === teamId) return;
-    this.selectedTeamId = teamId;
-    this.loadTeamDetail(teamId);
+    if (!teamId) return;
+    this.openTeamDetail(teamId, false);
+  }
+
+  viewTeam(teamId: number): void {
+    this.openTeamDetail(teamId, false);
+    setTimeout(() => this.scrollToDetail(), 0);
+  }
+
+  editTeam(teamId: number): void {
+    const target = this.teams.find(t => t.id === teamId);
+    if (!target) return;
+
+    this.editTeamId = teamId;
+    this.editName = target.name;
+    this.editDescription = target.description ?? '';
+    this.editManagerId = target.managerId ?? 0;
+    this.editOpen = true;
+    this.ensureUsersLoaded();
   }
 
   loadTeamDetail(teamId: number): void {
     this.loadingDetail = true;
-    this.#teams.get(teamId).subscribe({
-      next: (res) => {
-        this.selectedTeam = res;
-        this.loadingDetail = false;
-      },
-      error: (err) => {
-        this.error = err?.error?.message || 'Failed to load team.';
-        this.loadingDetail = false;
-      }
-    });
+    this.detailReq?.unsubscribe();
+    this.detailReq = this.#teams.get(teamId)
+      .pipe(finalize(() => { this.loadingDetail = false; }))
+      .subscribe({
+        next: (res) => {
+          this.selectedTeam = res;
+        },
+        error: (err) => {
+          this.error = err?.error?.message || err?.message || 'Failed to load team. Please try again.';
+          this.selectedTeam = null;
+        }
+      });
   }
 
   ensureUsersLoaded(): void {
@@ -458,6 +554,14 @@ export class TeamsComponent implements OnInit {
     this.createOpen = false;
   }
 
+  closeEdit(): void {
+    this.editOpen = false;
+    this.editTeamId = 0;
+    this.editName = '';
+    this.editDescription = '';
+    this.editManagerId = 0;
+  }
+
   togglePick(userId: number): void {
     if (this.createMemberIds.has(userId)) this.createMemberIds.delete(userId);
     else this.createMemberIds.add(userId);
@@ -488,6 +592,32 @@ export class TeamsComponent implements OnInit {
     });
   }
 
+  saveEdit(): void {
+    const teamId = this.editTeamId;
+    const name = this.editName.trim();
+    if (!teamId || !name) return;
+
+    const payload: any = {
+      name,
+      description: this.editDescription?.trim() || undefined
+    };
+
+    if (this.isAdmin && this.editManagerId) {
+      payload.managerId = this.editManagerId;
+    }
+
+    this.#teams.update(teamId, payload).subscribe({
+      next: () => {
+        this.closeEdit();
+        this.loadTeams();
+        this.openTeamDetail(teamId, true);
+      },
+      error: (err) => {
+        this.error = err?.error?.message || 'Failed to update team.';
+      }
+    });
+  }
+
   roleClass(role: string): string {
     switch ((role ?? '').toUpperCase()) {
       case 'ADMIN':
@@ -508,4 +638,22 @@ export class TeamsComponent implements OnInit {
     if (v === 2) return 'strip--purple';
     return 'strip--amber';
   }
+
+  private scrollToDetail(): void {
+    this.detailSection?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  private openTeamDetail(teamId: number, forceReload: boolean): void {
+    if (!teamId) return;
+    this.error = '';
+    if (forceReload) {
+      this.selectedTeam = null;
+    }
+    this.selectedTeamId = teamId;
+    this.loadTeamDetail(teamId);
+  }
 }
+
+
+
+

@@ -123,6 +123,7 @@ import { AnalyticsPanelComponent } from './analytics-panel/analytics-panel.compo
 import { TaskSummaryResponse } from '../../models/task.model';
 import { ActivityFeedComponent } from '.././activity-feed/activity-feed.component';
 import { HasRoleDirective } from '../../directives/has-role.directive';
+import { SubtaskSummaryResponse } from '../../models/subtask.model';
 
 type Tab = 'ALL' | TaskStatus | 'ASSIGNED';
 
@@ -159,6 +160,7 @@ export class DashboardComponent implements OnInit {
   activityEntries: ActivityLogResponse[] = [];
   activityLoading = false;
   activityError = '';
+  subtaskSummaries: Record<number, SubtaskSummaryResponse> = {};
 
   showForm = false;
   selected: TaskResponse | null = null;
@@ -176,6 +178,7 @@ export class DashboardComponent implements OnInit {
       this.recomputeCounts();
       this.computeAlerts();
       this.applyFilter();
+      this.loadSubtaskSummaries();
     });
   }
 
@@ -291,6 +294,17 @@ export class DashboardComponent implements OnInit {
     this.alertVisible = false;
   }
 
+  private loadSubtaskSummaries(): void {
+    this.subtaskSummaries = {};
+    for (const task of this.tasks) {
+      this.#tasks.getSubtaskSummary(task.id).subscribe({
+        next: (summary) => {
+          this.subtaskSummaries[task.id] = summary ?? { total: 0, completed: 0 };
+        }
+      });
+    }
+  }
+
   openCreate(): void { this.selected = null; this.showForm = true; }
   openEdit(t: TaskResponse): void { this.selected = t; this.showForm = true; }
   closeForm(): void { this.showForm = false; this.selected = null; }
@@ -316,6 +330,7 @@ export class DashboardComponent implements OnInit {
           this.tasks = [saved, ...this.tasks];
           this.recomputeCounts();
           this.computeAlerts();
+          this.loadSubtaskSummaries();
           this.loadActivity();
           this.isSaving = false;
           this.closeForm();
@@ -333,6 +348,7 @@ export class DashboardComponent implements OnInit {
         this.recomputeCounts();
         this.computeAlerts();
         this.applyFilter();
+        this.loadSubtaskSummaries();
         this.loadActivity();
       });
     }
@@ -347,6 +363,7 @@ export class DashboardComponent implements OnInit {
         this.recomputeCounts();
         this.computeAlerts();
         this.applyFilter();
+        this.loadSubtaskSummaries();
         this.loadActivity();
         this.closeForm();
       });
@@ -382,5 +399,15 @@ export class DashboardComponent implements OnInit {
     if (due < today) return 'due--over';
     if (due.getTime() === today.getTime()) return 'due--today';
     return '';
+  }
+
+  getSubtaskSummary(taskId: number): SubtaskSummaryResponse {
+    return this.subtaskSummaries[taskId] ?? { total: 0, completed: 0 };
+  }
+
+  subtaskProgress(taskId: number): number {
+    const s = this.getSubtaskSummary(taskId);
+    if (!s.total) return 0;
+    return Math.round((s.completed / s.total) * 100);
   }
 }

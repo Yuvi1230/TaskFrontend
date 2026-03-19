@@ -3,6 +3,7 @@
     <a class="nav__brand" routerLink="/dashboard"><span class="brand-dot"></span> TaskFlow</a>
     <a class="nav__link" routerLink="/teams" *appHasRole="['ADMIN','MANAGER']">Teams</a>
     <a class="nav__link" routerLink="/admin" *appHasRole="['ADMIN']">Admin</a>
+    <a class="nav__link" routerLink="/settings" *ngIf="auth.isAuthenticated()">Settings</a>
     <div class="nav__spacer"></div>
     <ng-container  *ngIf="auth.isAuthenticated(); else guest"  >
       <span>Hello, {{ fullName }}</span>

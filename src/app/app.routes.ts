@@ -9,6 +9,7 @@ import { RoleGuard } from './guards/role.guard';
 import { TeamsComponent } from './teams/teams.component';
 import { AdminComponent } from './admin/admin.component';
 import { TeamDetailComponent } from './teams/team-detail.component';
+import { SettingsComponent } from './settings/settings.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent, canActivate: [GuestGuard] },
@@ -31,6 +32,17 @@ export const routes: Routes = [
     component: AdminComponent,
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['ADMIN'] }
+  },
+  {
+    path: 'settings',
+    component: SettingsComponent,
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'settings/team',
+    component: SettingsComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['ADMIN', 'MANAGER'] }
   },
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', component: NotFoundComponent }

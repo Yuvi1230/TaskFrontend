@@ -5,12 +5,15 @@ import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Priority, TaskRequest, TaskResponse, TaskStatus, UserResponse } from '../.././/models/task.model';
 import { TaskCommentsComponent } from '../task-comments/task-comments.component';
+import { TaskAttachmentsComponent } from '../task-attachments/task-attachments.component';
+import { SubtasksComponent } from '../subtasks/subtasks.component';
+import { TimeTrackingComponent } from '../time-tracking/time-tracking.component';
 import { TaskService } from '../../services/task.service';
 
 @Component({
   standalone: true,
   selector: 'app-task-form',
-  imports: [CommonModule, ReactiveFormsModule, TaskCommentsComponent],
+  imports: [CommonModule, ReactiveFormsModule, SubtasksComponent, TimeTrackingComponent, TaskCommentsComponent, TaskAttachmentsComponent],
   templateUrl: './task-form.component.html',
   styleUrls: ['./task-form.component.css']
 })

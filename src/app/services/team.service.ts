@@ -21,6 +21,10 @@ export class TeamService {
     return this.#http.post<TeamResponse>(this.#base, payload);
   }
 
+  update(teamId: number, payload: { name: string; description?: string; managerId?: number }) {
+    return this.#http.put<TeamResponse>(`${this.#base}/${teamId}`, payload);
+  }
+
   delete(teamId: number) {
     return this.#http.delete<void>(`${this.#base}/${teamId}`);
   }

@@ -390,6 +390,38 @@
   font-weight: 500;
 }
 
+.subtasks-progress {
+  margin-top: 4px;
+}
+
+.subtasks-progress__text {
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.subtasks-progress__text--done {
+  color: #15803d;
+}
+
+.subtasks-progress__bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+  overflow: hidden;
+}
+
+.subtasks-progress__fill {
+  height: 100%;
+  background: #2563eb;
+}
+
+.subtasks-progress__fill--done {
+  background: #22c55e;
+}
+
 .assignee::before {
   content: '\25CF';
   color: #dbeafe;

@@ -119,6 +119,13 @@ export class AuthService {
     return recovered;
   }
 
+  updateStoredUser(patch: Partial<CurrentUser>): void {
+    const current = this.getCurrentUser();
+    if (!current) return;
+    const next: CurrentUser = { ...current, ...patch };
+    localStorage.setItem('user', JSON.stringify(next));
+  }
+
   /** Logout + navigate to /login (idempotent) */
   logout(): void {
     this.clearToken();
