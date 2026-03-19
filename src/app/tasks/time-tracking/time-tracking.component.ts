@@ -73,7 +73,11 @@ export class TimeTrackingComponent implements OnChanges, OnDestroy {
     this.#tasks.getActiveTimer(this.taskId).subscribe({
       next: (res) => {
         this.timerRunning = !!res?.running;
-        this.timerStartAt = res?.startTime ? new Date(res.startTime) : null;
+        this.timerStartAt = this.parseStartTime(res?.startTime ?? null);
+        if (this.timerRunning && !this.timerStartAt) {
+          // Keep UI live even if backend timestamp format is non-ISO.
+          this.timerStartAt = new Date();
+        }
         if (this.timerRunning && this.timerStartAt) {
           this.restartTicker();
         }
@@ -88,7 +92,7 @@ export class TimeTrackingComponent implements OnChanges, OnDestroy {
       this.#tasks.startTimer(this.taskId).subscribe({
         next: (res) => {
           this.timerRunning = true;
-          this.timerStartAt = res?.startTime ? new Date(res.startTime) : new Date();
+          this.timerStartAt = this.parseStartTime(res?.startTime ?? null) ?? new Date();
           this.restartTicker();
         },
         error: (err) => {
@@ -156,9 +160,10 @@ export class TimeTrackingComponent implements OnChanges, OnDestroy {
   }
 
   formatTimer(): string {
-    const h = Math.floor(this.elapsedSeconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((this.elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
-    const s = (this.elapsedSeconds % 60).toString().padStart(2, '0');
+    const safeSeconds = Number.isFinite(this.elapsedSeconds) ? this.elapsedSeconds : 0;
+    const h = Math.floor(safeSeconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((safeSeconds % 3600) / 60).toString().padStart(2, '0');
+    const s = (safeSeconds % 60).toString().padStart(2, '0');
     return `${h}:${m}:${s}`;
   }
 
@@ -210,5 +215,15 @@ export class TimeTrackingComponent implements OnChanges, OnDestroy {
     const dd = `${d.getDate()}`.padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
   }
-}
 
+  private parseStartTime(raw: string | null): Date | null {
+    if (!raw) return null;
+    const direct = new Date(raw);
+    if (!Number.isNaN(direct.getTime())) return direct;
+
+    // Some backends send nanosecond precision (e.g. .123456Z), normalize to ms.
+    const normalized = raw.replace(/\.(\d{3})\d+(Z?)$/, '.$1$2');
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+}

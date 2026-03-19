@@ -56,7 +56,7 @@ body{
 }
 
 /* -------- Navbar (global fallback for your app-navbar) -------- */
-header{
+header.nav{
   position: sticky;
   top: 0;
   z-index: 100; /* below modal (z=1000) */
